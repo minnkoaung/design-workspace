@@ -1,0 +1,7 @@
+#!/bin/sh
+# Resolve the checkout location so this launcher also works from another directory.
+task_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
+if command -v python3 >/dev/null 2>&1; then
+  exec python3 "$task_root/scripts/workspace.py" "$@"
+fi
+exec python "$task_root/scripts/workspace.py" "$@"

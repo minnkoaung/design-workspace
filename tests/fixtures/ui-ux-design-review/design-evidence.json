@@ -1,0 +1,101 @@
+{
+  "type": "supplied serialized Figma node inspection, fixture only",
+  "revision": "1.1",
+  "viewport": [
+    1440,
+    1024
+  ],
+  "screenshots": "not supplied",
+  "prototype": "not supplied",
+  "runtime": "not supplied",
+  "nodes": [
+    {
+      "id": "101:1",
+      "screen": "SCR-01 User List",
+      "columns": [
+        "Name",
+        "Mobile Number",
+        "Email",
+        "Role",
+        "Status"
+      ],
+      "actions": [
+        "New User",
+        "Edit User",
+        "Reset Password"
+      ],
+      "annotation": "System Admin only; email column is 70px wide and one line with clipping enabled",
+      "example_email": "alex.anderson@example.com"
+    },
+    {
+      "id": "102:1",
+      "screen": "SCR-02 New User",
+      "fields": [
+        {
+          "label": "Name",
+          "editable": true
+        },
+        {
+          "label": "Email",
+          "editable": true
+        },
+        {
+          "label": "Role",
+          "editable": true
+        }
+      ],
+      "actions": [
+        "Create User",
+        "Cancel"
+      ],
+      "copy": [
+        "Email is the username.",
+        "A temporary password will be emailed and expires after 24 hours."
+      ]
+    },
+    {
+      "id": "103:1",
+      "screen": "SCR-03 Edit User",
+      "fields": [
+        {
+          "label": "Name",
+          "value": "Alex Anderson",
+          "editable": true
+        },
+        {
+          "label": "Mobile Number",
+          "value": "09 000 000 001",
+          "editable": true
+        },
+        {
+          "label": "Email",
+          "value": "alex.anderson@example.com",
+          "editable": true
+        },
+        {
+          "label": "Role",
+          "value": "Portal User",
+          "editable": true
+        }
+      ],
+      "actions": [
+        "Save Changes",
+        "Cancel"
+      ],
+      "annotation": "System Admin only"
+    },
+    {
+      "id": "104:1",
+      "screen": "SCR-04 Reset confirmation",
+      "copy": [
+        "Reset password for Alex Anderson?",
+        "A temporary password will be emailed."
+      ],
+      "actions": [
+        "Reset Password",
+        "Cancel"
+      ],
+      "annotation": "Visible entry action for System Admin and Portal User; frontend role-visibility annotation only"
+    }
+  ]
+}

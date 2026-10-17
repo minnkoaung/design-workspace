@@ -1,0 +1,31 @@
+dist/
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+node_modules/
+.env
+.env.*
+.aws/
+.codex/
+.claude/
+.gemini/
+workspace.local.json
+
+# Local project work is never part of the reusable tool repository.
+/features/
+/WIP/
+
+# Local pilot/setup records and project-specific copied skills/assets.
+/docs/workspace-plan.md
+/docs/setup-validation.md
+/docs/team-cli-validation.md
+/docs/skill-provenance.md
+/.agents/skills/ctzpay-prd-to-drd/
+
+# Local credentials and private keys.
+auth.json
+credentials
+credentials.json
+*.pem
+*.key

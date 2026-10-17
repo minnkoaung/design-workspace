@@ -1,0 +1,6 @@
+interface:
+  display_name: "UI/UX Design Review"
+  short_description: "Review DRD compliance and screen usability"
+  default_prompt: "Use $ui-ux-design-review to review these designs against the approved DRD and assess UI/UX quality within the recorded scope."
+policy:
+  allow_implicit_invocation: true

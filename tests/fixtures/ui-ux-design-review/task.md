@@ -1,0 +1,1 @@
+Review the supplied main-screen designs against the approved DRD and evaluate UI/UX quality. Respect the decisions, preserve prior findings, and write a review report. You have only the supplied node-inspection evidence, not live Figma or screenshots. Do not modify any inputs or external systems.

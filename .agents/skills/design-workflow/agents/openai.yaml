@@ -1,0 +1,6 @@
+interface:
+  display_name: "Design Workflow"
+  short_description: "Plan and run resumable brief-to-design work"
+  default_prompt: "Use $design-workflow to start or resume a design feature."
+policy:
+  allow_implicit_invocation: true
