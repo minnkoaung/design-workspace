@@ -11,6 +11,7 @@ node_modules/
 .claude/
 .gemini/
 workspace.local.json
+workspace.local.json.tmp
 
 # Local project work is never part of the reusable tool repository.
 /features/

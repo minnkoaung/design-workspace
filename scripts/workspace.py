@@ -8,15 +8,19 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import sys
 import zipfile
+import model_router
+import agent_runtime
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNTIME_FILES = ("AGENTS.md", "README.md", "BOOTSTRAP.md", ".gitignore", "design-workspace")
+RUNTIME_FILES = ("AGENTS.md", "CLAUDE.md", "README.md", "BOOTSTRAP.md", ".gitignore", "design-workspace")
 RUNTIME_DIRS = (".agents", "skills", "docs", "standards", "templates", "scripts", "tests")
 LOCAL_ONLY_PATHS = (".agents/skills/ctzpay-prd-to-drd", "docs/workspace-plan.md",
                     "docs/setup-validation.md", "docs/team-cli-validation.md", "docs/skill-provenance.md")
 REQUIRED = ("AGENTS.md", "BOOTSTRAP.md", "templates/status.md", "templates/wip-entry.md",
+            "scripts/model_router.py", "scripts/agent_runtime.py", "scripts/providers/__init__.py",
             "standards/review-checklist.md", ".agents/skills/design-workflow/SKILL.md",
             ".agents/skills/design-workflow/references/stages.md",
             ".agents/skills/design-workflow/references/recovery.md",
@@ -123,6 +127,10 @@ def command_doctor(root: Path) -> int:
     print(f"Workspace: {root}\nPython: {sys.version.split()[0]}")
     for name in missing:
         print(f"MISSING {name}")
+    print('Codex CLI: ' + ('found; authentication not tested' if shutil.which('codex') else 'not found'))
+    print('Claude Code: ' + ('found; authentication not tested' if shutil.which('claude') else 'not found'))
+    print('OpenRouter: API connection setup available; key/network not tested')
+    print('init requires one configured execution provider; local maintenance commands remain available.')
     print("AI provider/authentication: user configured; not tested by this command.")
     print("Figma/document tools and fonts: verify in each AI session; not bundled.")
     print("Local workspace structure: " + ("FAIL" if missing else "PASS"))
@@ -205,6 +213,11 @@ def command_resume(root: Path, slug: str | None) -> int:
           "Preserve recorded approvals, deferrals and review limits. Continue only the saved next action. "
           "If this CLI has no skill loader, read the referenced Markdown files directly. "
           "Verify your own session tools; do not assume another teammate's connectors or credentials exist.")
+    try:
+        routing = model_router.configuration(root)
+        print(f"\nSaved provider: {routing['provider']} / {routing['mode']}. Use task plan/run for routed execution.")
+    except ValueError:
+        print('\nNo execution provider configured. Run ./design-workspace providers setup before starting agent work.')
     return 0
 
 
@@ -218,14 +231,23 @@ def ask_required(prompt: str, default: str = "") -> str:
 
 def command_init(root: Path) -> int:
     """Collect local intake or select a saved run; never launch an AI session."""
-    print(f"\nDesign Workspace\n{root}\n\n1. New project / feature\n2. Resume existing feature\n0. Exit\n")
+    print(f"\nDesign Workspace\n{root}")
+    if agent_runtime.ensure_provider(root) is None:
+        return 0
+    print('\n1. New project / feature\n2. Resume existing feature\n3. Change provider or models\n0. Exit\n')
     while True:
-        choice = input("Choose New or Resume [1/2/0]: ").strip().lower()
-        if choice in {"0", "exit", "q", "quit"}:
+        choice = input('Choose New, Resume or Settings [1/2/3/0]: ').strip().lower()
+        if choice in {'0', 'exit', 'q', 'quit'}:
             return 0
-        if choice in {"1", "new", "2", "resume"}:
+        if choice in {'3', 'models', 'providers', 'settings'}:
+            try:
+                agent_runtime.setup(root)
+            except (ValueError, OSError) as exc:
+                print(f'Setup did not finish: {exc}. Previous settings preserved; choose Settings to retry.')
+            continue
+        if choice in {'1', 'new', '2', 'resume'}:
             break
-        print("Enter 1 (New), 2 (Resume), or 0 (Exit).")
+        print('Enter 1 (New), 2 (Resume), 3 (Provider/models), or 0 (Exit).')
     if choice in {"2", "resume"}:
         statuses = sorted((root / "features").glob("*/status.md"))
         if not statuses:
@@ -329,7 +351,7 @@ def share_files(root: Path, slugs: list[str]) -> list[Path]:
             continue
         if any(p in {"__pycache__", ".git", ".aws", ".codex", ".claude", ".gemini", ".venv", "node_modules"} for p in parts):
             continue
-        if path.name.startswith(".env") or path.suffix in {".pyc", ".pem", ".key"} or path.name.lower() in {"credentials", "credentials.json", "auth.json", "workspace.local.json"}:
+        if path.name.startswith(".env") or path.suffix in {".pyc", ".pem", ".key"} or path.name.lower() in {"credentials", "credentials.json", "auth.json", "workspace.local.json", "workspace.local.json.tmp"}:
             continue
         output.append(path)
     return output
@@ -363,6 +385,19 @@ def main(argv=None) -> int:
     sub.add_parser("init", help="Interactive New/Resume menu with requirements capture")
     sub.add_parser("doctor", help="Check local prerequisites; does not verify AI authentication")
     sub.add_parser("list", help="List saved project stages")
+    models = sub.add_parser("models", help="Discover and configure account-specific task models")
+    models.add_argument("action", choices=("list", "setup", "status"))
+    models.add_argument("--provider", choices=("codex", "claude-code", "openrouter"))
+    providers = sub.add_parser("providers", help="Detect and configure Codex CLI, Claude Code or OpenRouter")
+    providers.add_argument("action", choices=("list", "setup", "status"))
+    providers.add_argument("--provider", choices=("codex", "claude-code", "openrouter"))
+    task = sub.add_parser("task", help="Plan or run a bounded read-only worker with model routing")
+    task.add_argument("action", choices=("plan", "run"))
+    task.add_argument("--provider", choices=("codex", "claude-code", "openrouter"))
+    task.add_argument("feature_id")
+    task.add_argument("kind", choices=model_router.KINDS)
+    task.add_argument("--context", action="append", default=[], help="Workspace-relative feature text file; repeat for more")
+    task.add_argument("--image", action="append", default=[], help="Workspace-relative feature image; repeat for more")
     new = sub.add_parser("new", help="Create a separate project and WIP entry without approvals")
     new.add_argument("feature_id")
     new.add_argument("--name")
@@ -379,6 +414,31 @@ def main(argv=None) -> int:
     root = args.root.resolve()
     try:
         if args.command == "init": return command_init(root)
+        if args.command == 'providers':
+            if args.action == 'list':
+                agent_runtime.list_providers(root)
+                return 0
+            if args.action == 'setup':
+                agent_runtime.setup(root, args.provider)
+                return 0
+            print(json.dumps(model_router.read_local(root).get('agent_runtime', {'legacy_codex_settings': 'model_routing' in model_router.read_local(root)}), indent=2))
+            return 0
+        if args.command == 'models':
+            if args.action == 'list' and args.provider in {None, 'codex'}:
+                try:
+                    selected = model_router.configuration(root, args.provider)['provider']
+                except ValueError:
+                    selected = args.provider or 'codex'
+                if selected == 'codex':
+                    model_router.display_catalog(model_router.discover(root))
+                    return 0
+            return agent_runtime.models(root, args.action, args.provider)
+        if args.command == "task":
+            run = feature(root, args.feature_id)
+            errors = check_feature(root, args.feature_id)
+            if errors:
+                raise ValueError("Reconcile feature checkpoint before task execution: " + "; ".join(errors))
+            return model_router.execute(root, run, args.kind, args.context, args.image, dry_run=args.action == "plan", provider=args.provider)
         if args.command == "doctor": return command_doctor(root)
         if args.command == "list": return command_list(root)
         if args.command == "new": return command_new(root, args.feature_id, args.name)

@@ -23,11 +23,17 @@ python3 scripts/workspace.py list
 python3 scripts/workspace.py resume project-one
 ```
 
-Use `init` for a guided New/Resume menu: New collects requirements; Resume lists saved features for selection. Finish multiline requirements with a single `.` line. Optional surface/deliverables can be left undecided. No AI process is launched and no approval is inferred. See [interactive startup](init-cli.md).
+Use `init` to configure/recheck Codex CLI, Claude Code or OpenRouter first, then enter New/Resume. There is no Manual workflow mode. New collects requirements; Resume lists saved features for selection. Finish multiline requirements with a single `.` line. Optional surface/deliverables can be left undecided. New/Resume launches no AI process and infers no approval. Init option 3 configures per-user model routing; explicit `task run` invokes a bounded report worker through the selected provider. See [interactive startup](init-cli.md).
 
 Open the same folder in your AI CLI and paste the printed prompt. On Windows use `py -3 scripts/workspace.py` or `python scripts/workspace.py` with Python 3.10+. On macOS/Linux the shortcut is `./design-workspace`.
 
 `new` scaffolds intake records without sources, designs or approvals. `resume` prints a prompt, not a model invocation. The AI still performs intake or follows the exact saved next action. Before switching people/projects, save stage, decisions, approvals/deferrals, verification limits and pending operations; synchronize WIP. Use one active writer per feature/Figma area and record ownership in the run plan.
+
+For shorter commands, configure the optional `dw` shell alias/function described in [README](../README.md#short-command-dw). It points to your own checkout and does not copy settings or credentials.
+
+## Per-teammate model routing
+
+Run `./design-workspace providers setup` with your own chosen provider. Codex and Claude Code use native sign-in; OpenRouter uses hidden session input or OPENROUTER_API_KEY. Local profiles and light/standard/strong mappings stay in ignored workspace.local.json and are excluded from packages. Keys are not persisted in files. Optional live tests explicitly consume your own allowance/credits and default to no. Read [routing](model-routing.md) and [implementation report](provider-implementation-report.md) for supported capabilities and limitations.
 
 ## Save a checkpoint
 
@@ -40,11 +46,24 @@ The helper refreshes registered hashes but never infers stages, approvals or WIP
 
 ## Share the reusable tool
 
+GitHub is the default distribution/update path:
+
+```sh
+git clone https://github.com/minnkoaung/design-workspace.git
+cd design-workspace
+./design-workspace doctor
+./design-workspace init
+```
+
+For an existing clone, save work then use `git pull --ff-only`; reconcile local tool changes or divergent history explicitly. On Windows use the Python entry point described above. Each teammate supplies their own AI tool/authentication. Without Codex, select Claude Code or OpenRouter during setup. One provider must be configured before init enters New/Resume; local maintenance remains available without one. No CLI/account is installed automatically.
+
+A clean starter ZIP is optional for offline distribution:
+
 ```sh
 python3 scripts/workspace.py pack --output dist/team-starter.zip
 ```
 
-Give teammates the ZIP; open its inner `design-workspace` directory. The clean starter contains CLI, instructions, bundled local skills, templates, standards and docs, with no feature folders or active WIP entries. It excludes personal provider configuration and common credential/cache paths. No account is connected by extraction. Packaging is not a comprehensive secret/content audit.
+It contains no feature folders or active WIP entries and excludes personal settings/credential/cache paths. Existing archives are not overwritten; choose a new output filename when needed. A ZIP is a static snapshot, not required alongside a GitHub clone and not automatically updated. Packaging is not a comprehensive secret/content audit.
 
 ## Transfer a selected project
 

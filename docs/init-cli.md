@@ -1,46 +1,31 @@
 # Interactive startup
 
-On macOS/Linux, open a terminal and run:
-
 ```sh
 cd /path/to/design-workspace
 ./design-workspace init
 ```
 
-Teammates use the path to their own checkout. The portable equivalent is `python3 scripts/workspace.py init`; on Windows use `py -3 scripts/workspace.py init` with Python 3.10+.
+Use your own checkout path. On Windows use `py -3 scripts/workspace.py init`; Python3.10+ is required.
+
+Init first rechecks the saved provider, or offers Codex CLI, Claude Code and OpenRouter setup. There is no Manual workflow mode. With no configured provider you can set one up or exit; New/Resume is not shown early. Local list/check/doctor commands remain available independently.
+
+Setup uses native CLI login/status for Codex/Claude, or environment/hidden-session OpenRouter credentials. It asks once for routing mode/models and optionally a clearly disclosed live test. No automatic installation, copied credentials or silent provider fallback. Details: [provider flows](provider-setup-flow.md), [current implementation](provider-implementation-report.md).
+
+Once configured:
 
 ```text
-Design Workspace
-
 1. New project / feature
 2. Resume existing feature
+3. Change provider or models
 0. Exit
-
-Choose New or Resume [1/2/0]:
 ```
 
-## New
+New collects name, unique lowercase feature ID, multiline requirements/source path (finish with a single `.` line), optional surface and deliverables. Input is gathered before feature creation; cancellation leaves no partial intake. It saves raw intake under requirements/intake.json, Stage0 records and one WIP entry. Sources are not automatically approved/read/copied by scaffold creation.
 
-Enter `1` or `new`. The CLI asks for:
+Resume lists saved features by number/ID and their state/stage. Selection does not change approvals or design state. Read status, decisions, RESUME and checkpoint; reconcile actual external nodes before writing. A missing/invalid checkpoint is labelled for reconciliation.
 
-1. Project/feature name.
-2. Feature ID, with a suggested lowercase ID. Existing IDs are refused.
-3. Requirements or a source-file path, across multiple lines. Finish by entering a single `.` on its own line. At least one nonempty line is required.
-4. Target surface, optional if undecided.
-5. Desired deliverables, optional if undecided.
+New/Resume records and prints the next-action context; actual bounded agent execution uses task plan/run with your configured provider. Resume printing does not by itself invoke a model. This release is not a complete automatic stage scheduler. Workflow gates, product decisions and final acceptance remain human/orchestrator responsibilities.
 
-Input is collected before creating the feature; Ctrl-C or an input EOF before submission cancels without creating it. New records are separate under `features/<id>/` with one `WIP/<id>_WIP.md`. Exact requirements, surface and deliverables are saved in `requirements/intake.json`; the brief points to that input. Source paths are captured as text; originals are not read/copied by this helper. The AI must read inputs, preserve source snapshots and complete intake. No requirements/design/variant approvals are granted.
+Option3 can change provider/model settings without overwriting projects. A canceled/failed setup preserves previous valid settings. Session-only OpenRouter keys may require hidden re-entry in a new process; environment references can be reused. Existing interactive chats are not silently switched to another model.
 
-## Resume
-
-Enter `2` or `resume`. The CLI lists saved feature IDs with their recorded state and stage. Select by number or exact ID; enter `0` to exit. A missing/invalid checkpoint is labelled so the AI can reconcile it with status.md. If no features exist, the command explains how to start New. Merely selecting a feature does not change its files, stage, approvals or ownership.
-
-## Continue with your AI
-
-The command prints a feature-specific continuation prompt. Open your AI CLI in this same workspace and paste it. Read local AGENTS.md and skills explicitly if the client does not discover them. The helper does not connect a model, launch an AI session, configure credentials or authenticate Figma. Every session uses its own tools/access.
-
-After closing the terminal, run the same `init` command and choose Resume. State is restored from saved files, not chat memory. Before switching features ask the AI to save its records/WIP and refresh/check the checkpoint. The menu does not save unsaved work from another active AI session.
-
-Each feature retains its own saved stage and next action. New projects remain separate. Use one writer per feature/Figma area and record ownership before handoff.
-
-Use the full command `./design-workspace init`; a bare system command named `init` is not this workspace helper.
+Close/reopen the terminal and use init again to resume from files, not old chat memory. Save ongoing work/records and refresh/check its checkpoint before switching projects or writers. The menu cannot save unsaved work from a different active AI session. Use the full `./design-workspace init`, not the operating system's unrelated `init` command.

@@ -4,7 +4,7 @@ Track the CLI launcher and Python helper, workspace instructions, generic orches
 
 Keep local project work out of Git: `features/`, `WIP/`, generated `dist/` archives, personal provider settings/credentials, project-specific copied converters/brand assets and local pilot/setup notes are ignored. Existing local files are preserved; ignoring does not delete them. The clean starter also excludes the local-only skill and notes, even when they exist in the author's workspace.
 
-Cloning retrieves the tool, not project history or client deliverables. New feature/WIP directories are created by `init` or `new` when needed. Check an intended commit with `git diff --cached --stat` and `git diff --cached --name-only`; do not force-add project folders.
+Cloning retrieves the tool, not project history or client deliverables. New feature/WIP directories are created by `init` or `new` when needed. Check an intended commit with `git --no-pager diff --cached --stat` and `git --no-pager diff --cached --name-only`; do not force-add project folders.
 
 To share a project deliberately, use the separately documented `pack --include-feature <id>` flow and review the selected content before transfer. A selected project transfer is distinct from publishing the reusable tool repository.
 
@@ -16,12 +16,14 @@ Run these in your own terminal from the workspace after selecting the destinatio
 
 ```sh
 git init -b main
-git add .gitignore AGENTS.md BOOTSTRAP.md README.md design-workspace scripts tests skills standards templates docs/init-cli.md docs/team-setup.md docs/capabilities.md docs/review-skill-validation.md docs/repository-scope.md docs/validation .agents/skills/design-workflow
-git diff --cached --stat
-git diff --cached --name-only
+git add .gitignore AGENTS.md CLAUDE.md BOOTSTRAP.md README.md design-workspace scripts tests skills standards templates docs .agents/skills/design-workflow
+git --no-pager diff --cached --stat
+git --no-pager diff --cached --name-only
 git commit -m "Add portable design workspace CLI and reusable workflow skills"
 git remote add origin <your-github-repository-url>
 git push -u origin main
 ```
 
 Review the staged paths before committing: no `features/`, `WIP/`, `dist/`, project-specific converter/assets or local pilot notes should appear. Use your own authenticated GitHub/SSH credentials. For GitHub CLI authentication, run `gh auth login -h github.com` interactively in your terminal if needed; do not paste credentials into chat or this repository.
+
+Routing preferences (`workspace.local.json` and its temporary file) are local and ignored. Worker prompts/events/usage/reports live under ignored feature histories and are not published with the tool. Model routing code, generic documentation and synthetic tests are reusable repository content.

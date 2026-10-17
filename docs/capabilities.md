@@ -9,3 +9,9 @@ For a missing workflow skill: inspect candidates and suggest them; if none fits,
 The workspace works for requirements and DRD planning without Figma access. Each teammate verifies Figma in their own session; another person's completed feature does not verify their access.
 
 The provider-independent helper requires Python 3.10+ and no third-party packages. `doctor` checks local files, `resume` prints prompts, and `check` verifies paths/hashes. They do not test authentication, skill discovery, fonts, rendering, Figma access or instruction following. Initial CLI detection above is historical, not a dependency on Codex or that version. See `docs/team-setup.md`.
+
+Routed bounded worker support is now implemented through the local Codex app-server/exec interfaces. Model discovery is not an inference/access guarantee; settings stay in workspace.local.json. Live discovery in the restricted authoring session could not initialize Codex state. See model-routing.md and model-routing-validation.md for current scope and tests.
+
+## Three-provider update
+
+Provider-first setup and explicit report workers now support Codex CLI, Claude Code and OpenRouter. Historical Codex-only notes above are superseded by docs/provider-implementation-report.md. Claude image transport and OS secure-store integration are not implemented; no successful live model inference is claimed from synthetic tests.

@@ -1,5 +1,7 @@
 import hashlib
 import json
+import os
+from provider_fixtures import CATALOG, FAKE
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,13 +21,25 @@ class WorkspaceTests(unittest.TestCase):
         self.root.mkdir()
         for name in (".agents", "skills", "docs", "standards", "templates", "scripts", "tests"):
             shutil.copytree(ROOT / name, self.root / name, ignore=shutil.ignore_patterns("__pycache__"))
-        for name in ("README.md", "AGENTS.md", "BOOTSTRAP.md", ".gitignore", "design-workspace"):
+        for name in ("README.md", "AGENTS.md", "CLAUDE.md", "BOOTSTRAP.md", ".gitignore", "design-workspace"):
             shutil.copy2(ROOT / name, self.root / name)
 
     def call(self, *args, root=None, success=True, input_text=None):
         target = root or self.root
+        binary = self.root / 'fixture-bin/codex'
+        binary.parent.mkdir(exist_ok=True)
+        binary.write_text(FAKE)
+        binary.chmod(0o755)
+        environment = dict(os.environ)
+        environment['PATH'] = str(binary.parent) + os.pathsep + environment.get('PATH', '')
+        environment['FIXTURE_MODELS'] = json.dumps([{'model': m['model'], 'supportedReasoningEfforts': [{'reasoningEffort': e} for e in m['efforts']], 'defaultReasoningEffort': m['default_effort'], 'inputModalities': m['modalities']} for m in CATALOG['models']])
+        if args and args[0] == 'init' and not (target / 'workspace.local.json').exists():
+            settings = {'model_routing': {'version': 1, 'provider': 'codex', 'mode': 'balanced',
+                        'tiers': {tier: {'model': m['model'], 'effort': m['default_effort']} for tier,m in zip(('light','standard','strong'),CATALOG['models'])},
+                        'max_attempts': 1, 'max_context_chars': 30000, 'timeout_seconds': 30, 'catalog': CATALOG}}
+            (target / 'workspace.local.json').write_text(json.dumps(settings))
         result = subprocess.run([sys.executable, str(target / "scripts/workspace.py"), *args],
-                                text=True, capture_output=True, cwd=self.temp.name, input=input_text)
+                                text=True, capture_output=True, cwd=self.temp.name, input=input_text, env=environment)
         if success:
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         else:
@@ -100,6 +114,19 @@ class WorkspaceTests(unittest.TestCase):
         self.assertFalse(data["final_output_accepted"])
         self.assertEqual(data["gates"]["A_B"], "pending")
 
+    def test_routed_task_plan_requires_config_and_keeps_checkpoint(self):
+        run = self.new()
+        before = (run / "checkpoint.json").read_bytes()
+        self.assertIn("not configured", self.call("models", "status", success=False).stderr)
+        self.call("task", "plan", "alpha", "requirements", success=False)
+        settings = {"model_routing": {"version": 1, "provider": "codex", "mode": "balanced",
+                    "tiers": {tier: {"model": "fixture-" + tier, "effort": None} for tier in ("light", "standard", "strong")},
+                    "max_attempts": 1, "max_context_chars": 30000, "timeout_seconds": 30}}
+        (self.root / "workspace.local.json").write_text(json.dumps(settings))
+        self.assertIn('"model": "fixture-standard"', self.call("task", "plan", "alpha", "requirements").stdout)
+        self.assertEqual(before, (run / "checkpoint.json").read_bytes())
+        self.assertFalse((run / "history/agent-runs").exists())
+
     def test_source_drift_is_not_silently_rebaselined(self):
         run = self.new()
         source = run / "sources" / "brief.md"
@@ -143,6 +170,8 @@ class WorkspaceTests(unittest.TestCase):
         (self.root / ".aws").mkdir()
         (self.root / ".aws/credentials").write_text("fixture only")
         (self.root / "docs/auth.json").write_text("fixture only")
+        (self.root / "workspace.local.json").write_text('{"model_routing": "fixture only"}')
+        (self.root / "docs/workspace.local.json.tmp").write_text('fixture only')
         output = Path(self.temp.name) / "starter.zip"
         self.call("pack", "--output", str(output))
         with zipfile.ZipFile(output) as archive:
@@ -152,6 +181,7 @@ class WorkspaceTests(unittest.TestCase):
             self.assertTrue(any(n.endswith("skills/ui-ux-design-review/SKILL.md") for n in names))
             self.assertFalse(any("/features/" in n or "/WIP/" in n for n in names))
             self.assertFalse(any(n.endswith(".env") or "/.aws/" in n or n.endswith("auth.json") for n in names))
+            self.assertFalse(any(n.endswith("workspace.local.json") or n.endswith("workspace.local.json.tmp") for n in names))
             self.assertFalse(any("ctzpay-prd-to-drd/" in n for n in names))
             self.assertFalse(any(n.endswith("/docs/workspace-plan.md") or n.endswith("/docs/skill-provenance.md") for n in names))
             destination = Path(self.temp.name) / "recipient"
